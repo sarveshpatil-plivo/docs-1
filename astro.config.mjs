@@ -47,7 +47,7 @@ export default defineConfig({
             { label: 'Tools', slug: 'plugins/tools' },
             { label: 'Directives', slug: 'plugins/directives' },
             { label: 'Hooks', slug: 'plugins/hooks' },
-            { label: 'Custom Endpoints', slug: 'plugins/endpoints' },
+            { label: 'Endpoints', slug: 'plugins/endpoints' },
             { label: 'Persistence', slug: 'plugins/persistence' },
             { label: 'Settings', slug: 'plugins/settings' },
             { label: 'Logging', slug: 'plugins/logging' },

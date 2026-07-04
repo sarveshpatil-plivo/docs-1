@@ -1,5 +1,5 @@
 ---
-title: "Custom Endpoints"
+title: "Endpoints"
 ---
 
 Custom endpoints let you extend the REST API offered by the Cat. Every endpoint is documented live on your installation at [`localhost:1865/docs`](http://localhost:1865/docs), with a playground to try it out.

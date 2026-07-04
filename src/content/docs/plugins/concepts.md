@@ -41,7 +41,7 @@ flowchart LR
 | **[Tool](/docs/plugins/tools/)** | A method decorated with `@tool` the LLM can decide to call. Its docstring and type hints are the manual the LLM reads. | The agent needs to *do* something: query a DB, hit an API. |
 | **[Directive](/docs/plugins/directives/)** | Reusable middleware over the loop (`start` / `step` / `finish`). RAG, memory and guardrails are all just directives. | You need to touch the agent itself, per turn. |
 | **[Hook](/docs/plugins/hooks/)** | A data-only reaction to a global lifecycle event (message in, message out, app boot). Never sees the agent. | You react to the pipeline and don't need the agent. |
-| **[Custom Endpoint](/docs/plugins/endpoints/)** | Extend the REST API with `@endpoint.get/post/...`, guarded by a single `role=` kwarg. | You want your own HTTP routes. |
+| **[Endpoint](/docs/plugins/endpoints/)** | Extend the REST API with `@endpoint.get/post/...`, guarded by a single `role=` kwarg. | You want your own HTTP routes. |
 | **[Persistence](/docs/plugins/persistence/)** | Two key-value stores from the front door: `store` (shared) and `user` (per person). | You need to remember state between requests. |
 | **[Settings](/docs/plugins/settings/)** | A pydantic schema the Cat renders as a form in the admin UI. | An admin should configure your plugin. |
 | **[Dependencies](/docs/plugins/dependencies/)** | A `requirements.txt` the Cat installs with the plugin. | Your plugin needs extra Python packages. |
