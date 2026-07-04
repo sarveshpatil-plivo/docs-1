@@ -8,20 +8,20 @@ A plugin is how you extend the Cat. It's a folder of Python files that can conta
 
 To create a plugin just create a new subfolder in directory `plugins/`, for our first plugin the folder name will be `poetic_sock_seller`.
 
-You need two files in your plugin folder:
+Your plugin folder lives under `plugins/` in the project:
 
 ```
-cheshire-cat-ai
-├── compose.yml
-├── data
+my-cat
+├── config.py            # optional installation config
+├── data/                # database, uploads, memory
 ├── plugins
 │   └── poetic_sock_seller
 │       ├── plugin.json
 │       └── poetic_sock_seller.py
-└── static
+└── pyproject.toml
 ```
 
-The `plugin.json` file contains plugin's title and description, and is useful in the Admin Portal to recognize the plugin and activate/deactivate it.
+The `plugin.json` file contains the plugin's title and description, and is useful in the Admin Portal to recognize the plugin and activate/deactivate it. It is optional but recommended.
 
 `plugin.json` example:
 

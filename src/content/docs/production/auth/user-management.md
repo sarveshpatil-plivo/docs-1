@@ -2,132 +2,102 @@
 title: "User Management"
 ---
 
-We divide users in 3 categories:
+There is no user database, no registration form, no "user types" in the Cat. A **user** is just an identity, a small object with an `id`, a `name` and a list of [`roles`], produced by the **auth handler** from the credential on a request. Whoever authenticates a request becomes the `user` for that request.
 
-| User type    | Use case             | Where are they stored  | Authentication method     |
-|--------------|----------------------|------------------------|---------------------------|
-| **Public**   | Website support chat | Nowhere                | API keys (`CCAT_API_KEY`, `CCAT_API_KEY_WS`) and `user_id` |
-| **Internal** | Company assistant    | Cat core               | JSON Web Token (JWT)      |
-| **Custom**   | Your imagination     | Your identity provider | Your custom `AuthHandler` |
+Managing users, then, is really managing the auth handler: decide how a credential becomes a `User`, and you have decided who your users are and what they can do.
 
-If you are developing an application that supports multiple users, it's crucial to ensure that each user's session and memories are isolated, with granular access.
+[`roles`]: /docs/production/auth/authorization/
 
-Each user interacts with the Cat via a dedicated session, which in turn you will be able to use in your plugins as `cat`.
+## The default handler
 
-Let's now see the 3 types of users in detail.
+Out of the box, one handler is active and it is deliberately minimal:
 
-## Public Users
+- the master key (`API_KEY`) maps to a single, all-powerful **admin** user;
+- any JWT the Cat itself signed (with `JWT_SECRET`) is trusted, and the user is rebuilt from the token's claims.
 
-Users are public when they are not stored in core or in an external identity provider (like [KeyCloak](https://github.com/lucagobbi/catcloak)), but they are still allowed to use endpoints. A typical use case is a customer support AI on a public website, where you don't want to register and store users.
+That is enough to develop and to run machine-to-machine, but it defines users *its own way*: one admin behind a shared key, plus whatever a [login flow](/docs/production/auth/authentication/#jwt) mints. As soon as you want real, per-person identities, you replace it.
 
-Public users will be created, kept during the conversation, then permanently deleted.  
-To allow them access to the Cat you need to provide in each request a `user_id` and a credential (if required).
+## Replacing the default
 
-### ID
+Registering **any** auth handler switches the default off. The moment a plugin ships an `Auth` service, the built-in `DefaultAuth` is not registered at all, your handler is the only one deciding identities. Auth becomes totally yours.
 
-By default, the Cat requires a unique user identifier to associate sessions and memory data with individual users. 
-Generate this temporary identifier as you see fit and pass it as `user_id` to HTTP endpoints or to the WebSocket messaging interface.
+An `Auth` subclass inherits the base's verification (master key + core-signed JWTs), so unless you override those methods they keep working. To make auth *fully* custom, e.g. drop the shared master key in favour of per-user keys, override the relevant method and return your own `User`.
 
-You can pass a user ID to WebSocket endpoint by changing the address:  
-`ws://localhost:1865/ws/caterpillar_123456`
+Drop the class anywhere in a plugin; being a service, it is picked up automatically.
 
-For HTTP endpoints, just include a `user_id` header in the request:  
-`user_id`: `caterpillar_123456`
+### Example: an API key per user
 
-:::note
-If no user id is provided, the Cat will assume `user_id = "user"`.
-:::
-
-### Credentials
-
-If you set up `CCAT_API_KEY` and `CCAT_API_KEY_WS`, public users still need to provide those credentials, respectively via [http](/docs/production/auth/authentication/#http-key) and [websocket](/docs/production/auth/authentication/#websocket-key).
-
-If you did not set them, at your own peril all endpoints are wide open and you just need to specify the `user_id`.  
-
-Most people building public chatbots leave websocket open and lock down all http endpoints.  
-In any case it is recommended that you do this kind of requests server side, from a smartphone app, or between containers in a private docker network.  
-Avoid using your keys in a browser or any other transparent client.
-
-
-
-## Internal Users
-
-In use cases in which a specific and restricted set of users will use your Cat, you want dedicated credentials, detailed management and permanent storage.
-
-### Management
-
-The Cat framework includes a simple, internal user management system for creating, retrieving, updating, and deleting users. Endpoints for user management can be found on your installation under `/docs`.
-
-If you're looking for a straightforward way to manage users, you can use the Admin panel. Simply click on the `Settings` tab and you'll see a `User Management` section.
-
-### Credentials
-
-Once registered into the Cat with username and password, a user can be assigned granular permissions and can access endpoints with a JWT (JSON Web Token).
-
-Detailed instructions on how to obtain and use the JWT are [here](/docs/production/auth/authentication/#obtaining-a-jwt).  
-Remember to customize your JWT secret via the [`CCAT_JWT_SECRET`](/docs/production/auth/authentication/#2-securing-jwt) environment variable.
-
-:::note
-When authenticating requests with a JWT token, you do not need to pass the `user_id`; The Cat will automatically extract it from the token.
-:::
-
-
-## Custom Users
-
-If you already have a user management system or identity provider, you can easily integrate it with the Cat by implementing a custom `AuthHandler`.
-
-This allows you to use your own authentication logic and pass the necessary `AuthUserInfo` to the Cat. For more details, refer to the [custom auth guide](/docs/production/auth/custom-auth/).
-
-### Credentials
-
-While you can customize the `AuthHandler` to assign identity and permissions via any identity provider, we enforce a standard on how credentials must be sent to the Cat:
-
- - for http, via `Authentication: Bearer <credential>` header
- - for websocket, via `?token=<credential>` query parameter 
- - the two above are valid for both api keys and JWT
-
-This allows for auth and user management customization without breaking the many client libraries and tools the community is building.
-
-
-## Examples
-
-### Access current user from a plugin
-
-In hooks, tools and custom endpoints you can easily obtain user information from the `cat` variable.
+Override `authorize_user_from_key` to resolve each key to a distinct user with its own roles. Registering this **deactivates the default**, so the shared `meow` master key stops working, only the keys below authenticate:
 
 ```python
-from cat.mad_hatter.decorators import tool
+# plugins/my_auth/auth.py
+from uuid import uuid5, NAMESPACE_DNS
 
-@tool(return_direct=True)
-def who_am_i(arg, cat):
-    """Use to retrieve info about the current user."""
-    return f"Hello {cat.user_id}, here is some info about you: {cat.user_data.model_dump_json()}"
+from cat import User
+from cat.base import Auth
+
+# in real life, look these up in your database
+KEYS = {
+    "sk-alice": {"name": "alice", "roles": ["user"]},
+    "sk-bob":   {"name": "bob",   "roles": ["editor"]},
+}
+
+
+class ApiKeyAuth(Auth):
+    slug = "api_keys"
+    name = "Per-user API keys"
+
+    async def authorize_user_from_key(self, api_key: str) -> User | None:
+        record = KEYS.get(api_key)
+        if record is None:
+            return None  # unknown key → 403
+        return User(
+            id=uuid5(NAMESPACE_DNS, record["name"]),
+            name=record["name"],
+            roles=record["roles"],
+        )
 ```
 
-### Users and memories
+Now `Authorization: Bearer sk-bob` logs in as `bob` with the `editor` role. The inherited JWT path still works; override `authorize_user_from_jwt` to return `None` too if you want keys to be the *only* way in.
 
-In the Cat, users and memories are closely related. Without user-specific memory isolation, The Cat cannot maintain context across conversations.
-By default, the user system affects only the working memory and
-the episodic memory. The other memories are shared among users, but you could easily think about a custom plugin to store and restrict access to data in Long Term Memory based on `user_id`.
+### Example: Keycloak (or any external IdP)
 
-Here's an example of how the `user_id` could be used to filter declarative memories both on the uploading and retrieval side:
+When identities live in Keycloak, let it own the users and just map its tokens. Keycloak issues JWTs, so override `authorize_user_from_jwt`: verify the token against Keycloak and translate its claims into a `User`.
 
 ```python
+# plugins/keycloak_auth/auth.py
+import httpx
 
-from cat.mad_hatter.decorators import hook
+from cat import User
+from cat.base import Auth
 
-@hook
-def before_rabbithole_insert_memory(doc, cat):
-    # insert the user id metadata
-    doc.metadata["author"] = cat.user_id
-    return doc
+REALM = "https://id.mycompany.com/realms/cat"
 
-@hook
-def before_cat_recalls_declarative_memories(declarative_recall_config, cat):
-    # filter memories using the user_id as metadata. 
-    declarative_recall_config["metadata"] = {"author": cat.user_id}
-    return declarative_recall_config
 
+class KeycloakAuth(Auth):
+    slug = "keycloak"
+    name = "Keycloak"
+
+    async def authorize_user_from_jwt(self, token: str) -> User | None:
+        # ask Keycloak who this token belongs to (validates it too)
+        async with httpx.AsyncClient() as http:
+            resp = await http.get(
+                f"{REALM}/protocol/openid-connect/userinfo",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+        if resp.status_code != 200:
+            return None
+
+        info = resp.json()
+        return User(
+            id=info["sub"],  # Keycloak's stable user id (a UUID)
+            name=info.get("preferred_username", ""),
+            roles=info.get("realm_access", {}).get("roles", []),
+        )
 ```
 
+Your frontend obtains the token from Keycloak and sends it as usual in the `Authorization` header. To add a server-side "Login with Keycloak" button that mints a session cookie, implement the OAuth login flow instead, see [Custom Auth](/docs/production/auth/custom-auth/) and the reference `simple_oauth` plugin.
 
+## Per-user data
+
+Each user has an isolated key-value store, so a plugin can keep state per person without a database of its own. This is how an [Agent](/docs/plugins/agents/) remembers things for the person it is talking to. See [Persistence](/docs/plugins/persistence/) for the `user` and `store` APIs.

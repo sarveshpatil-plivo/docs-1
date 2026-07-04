@@ -1,61 +1,48 @@
 ---
-title: "enter the installation folder"
+title: "Backups and Updates"
 ---
 
 ## Backups
 
-To perform a full backup, just save your folder containing the `compose.yml` file and all the volumes (`data`, `plugins` and `static`). Cat's code and runtime is fully encapsulated in the docker image, no need to copy it anywhere.
+Your whole installation is a single folder: your `config.py`, the `plugins/` folder and the `data/` folder. Backing up the Cat is copying that folder.
 
-Same goes for the vector memory:
+- `config.py` and `plugins/` are your code.
+- `data/` holds all the state: the SQLite database (`data/core/core.db`), user uploads (`data/uploads`) and the file-based vector memory.
 
-- if you are not using the Qdrant container, all the collections are saved in `cat/data/local_vector_memory`, which pertains the case described above.
-- if you are using the Qdrant container, and you defined volumes for it, just save the volumes' contents.
-
-You can easily setup an automated backup system using tools like [rsync](https://linux.die.net/man/1/rsync) and a simple [cron](https://linux.die.net/man/8/cron).
-
-## Backup restoration
-
-You should be able to restore a full backed up installation simply putting the folder you saved, containing `compose.yml` and volumes, anywhere on a docker enabled system. Then run:
+To take a full backup, just copy the folder somewhere safe:
 
 ```bash
-cd <folder>
-docker compose pull
-docker compose up -d
+cp -r my-cat-project my-cat-backup
+```
+
+You can automate it with tools like [rsync](https://linux.die.net/man/1/rsync) and a simple [cron](https://linux.die.net/man/8/cron).
+
+:::note
+If you run an external database (PostgreSQL via `SQL`) or an external Qdrant instance for vector memory, back those up with their own tooling. The `data/` folder only covers the built-in, file-based setup.
+:::
+
+### Restoration
+
+Put the folder back on any machine, install the dependencies and start the Cat:
+
+```bash
+cd my-cat-backup
+uv sync
+uv run ccat
 ```
 
 ## Updates
 
-We are trying to respect [semantic versioning](https://semver.org/), but the project is really young and there may be some retrocompatibility hiccups. We are sorry for any inconvenience.
-
-If you have version `x.y.z` you should be able to update your Cat to any `x.*.*` version by just changing container tag in the `compose.yml` file.
-
-Example:
-
-```yaml
-  cheshire-cat-core:
-    image: ghcr.io/cheshire-cat-ai/core:1.6.3
-```
-
-Becomes:
-
-```yaml
-  cheshire-cat-core:
-    image: ghcr.io/cheshire-cat-ai/core:1.7.1
-```
-
-Then you pull the new image and you are good to go.
+The Cat is a Python package, `cheshire-cat-ai`. Updating is bumping that dependency:
 
 ```bash
-cd <folder>
-
-# stop the cat
-docker compose down
-
-# change the tag in `compose.yml`
-
-# update image
-docker compose pull
-
-# start the cat
-docker compose up -d
+uv add cheshire-cat-ai@latest
 ```
+
+We try to respect [semantic versioning](https://semver.org/), but the project is young and there may be some retrocompatibility hiccups. Pin a specific version in `pyproject.toml` if you want full control:
+
+```bash
+uv add cheshire-cat-ai==2.0.22
+```
+
+Then restart the Cat with `uv run ccat`.

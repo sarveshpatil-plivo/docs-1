@@ -35,8 +35,7 @@ export default defineConfig({
             { label: 'Install', slug: 'quickstart/installation-configuration' },
             { label: 'Message the Cat', slug: 'quickstart/message' },
             { label: 'Create a Plugin', slug: 'quickstart/prepare-plugin' },
-            { label: 'Write the first Tool', slug: 'quickstart/writing-tool' },
-            { label: 'Write the first Hook', slug: 'quickstart/writing-hook' },
+            { label: 'Main primitives', slug: 'quickstart/primitives' },
             { label: 'Conclusion', slug: 'quickstart/conclusion' },
           ],
         },
@@ -50,8 +49,9 @@ export default defineConfig({
             { label: 'Directives', slug: 'plugins/directives' },
             { label: 'Hooks', slug: 'plugins/hooks' },
             { label: 'Custom Endpoints', slug: 'plugins/endpoints' },
-            { label: 'Logging', slug: 'plugins/logging' },
+            { label: 'Persistence', slug: 'plugins/persistence' },
             { label: 'Settings', slug: 'plugins/settings' },
+            { label: 'Logging', slug: 'plugins/logging' },
             { label: 'Dependencies', slug: 'plugins/dependencies' },
             {
               label: 'Registry',
@@ -63,27 +63,21 @@ export default defineConfig({
           ],
         },
         {
+          label: 'Auth',
+          items: [
+            { label: 'Authentication', slug: 'production/auth/authentication' },
+            { label: 'Authorization', slug: 'production/auth/authorization' },
+            { label: 'User Management', slug: 'production/auth/user-management' },
+            { label: 'Custom Auth', slug: 'production/auth/custom-auth' },
+          ],
+        },
+        {
           label: 'Deploy',
           items: [
             { label: 'Make the Cat Private', slug: 'production/administrators/make_the_cat_private' },
-            { label: 'Environment Variables', slug: 'production/administrators/env-variables' },
+            { label: 'Configuration', slug: 'production/administrators/env-variables' },
             { label: 'Automatic Tests', slug: 'production/administrators/tests' },
             { label: 'Backups and Updates', slug: 'production/administrators/backups-updates' },
-            {
-              label: 'Network',
-              items: [
-                { label: 'HTTP Endpoints', slug: 'production/network/http-endpoints' },
-              ],
-            },
-            {
-              label: 'Auth',
-              items: [
-                { label: 'Authentication', slug: 'production/auth/authentication' },
-                { label: 'Authorization', slug: 'production/auth/authorization' },
-                { label: 'User Management', slug: 'production/auth/user-management' },
-                { label: 'Custom Auth', slug: 'production/auth/custom-auth' },
-              ],
-            },
           ],
         },
         {

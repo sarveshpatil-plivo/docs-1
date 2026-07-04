@@ -2,7 +2,7 @@
 title: "Logging System"
 ---
 
-The `CCAT_LOG_LEVEL` environment variable is used to manage the default logging level of the Cat. Take a look at Cat's environment variable [here](/docs/production/administrators/env-variables/#ccat_log_level).
+The `LOG_LEVEL` setting is used to manage the default logging level of the Cat. Take a look at Cat's configuration [here](/docs/production/administrators/env-variables/#available-settings).
 
 The available values for *level* are:
 

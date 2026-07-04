@@ -26,4 +26,4 @@ I'm using the Cat behind an HTTPS proxy but the login page tries to load some as
 
 ![alt text](../assets/img/faq/https_mixed_content.png)
 
-You need to configure the [`CCAT_HTTPS_PROXY_MODE`](/docs/production/administrators/env-variables/#ccat_https_proxy_mode) environment variable
+You need to set the [`HTTPS_PROXY_MODE`](/docs/production/administrators/env-variables/#available-settings) option in your `config.py`
