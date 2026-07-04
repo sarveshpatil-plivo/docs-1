@@ -2,8 +2,7 @@
 title: "Your first Plugin"
 ---
 
-Plugins are packages of `Tools` and `Hooks`.
-You don't distribute a `Tool` or a `Hook` directly, you will distribute a Plugin containing them. Don't worry, we'll explore what tools and hooks are in details in the upcoming steps. For now, let's start by creating an empty plugin.
+A plugin is how you extend the Cat. It's a folder of Python files that can contain `Agents`, `Tools`, `Directives`, `Hooks` and `Endpoints`. You don't distribute these pieces directly, you distribute a Plugin containing them. Don't worry, we'll explore each one in the upcoming steps. For now, let's start by creating an empty plugin.
 
 ## Creating the Plugin
 
@@ -33,7 +32,7 @@ The `plugin.json` file contains plugin's title and description, and is useful in
 }
 ```
 
-The `poetic_sock_seller.py` file will contain `Tools` and `Hooks` source code and can be left completely empty for this step.
+The `poetic_sock_seller.py` file will contain our agent and its tools. It can be left completely empty for this step.
 
 ## Activating the Plugin
 

@@ -2,148 +2,125 @@
 title: "Custom Endpoints"
 ---
 
-Custom endpoints allow you to extend the REST API offered by the Cat.  
-All endpoints are documented directly on your installation under [`localhost:1865/docs`](http://localhost:1865/docs), with usage examples and a playground to try them out.
+Custom endpoints let you extend the REST API offered by the Cat. Every endpoint is documented live on your installation at [`localhost:1865/docs`](http://localhost:1865/docs), with a playground to try it out.
 
-## How to add a custom endpoint
+## Adding an endpoint
 
-Let's add a simple endpoint with no input and no auth.  
-Add the following to your plugin:
+Import `endpoint` from the front door and decorate a function with the HTTP verb you want:
 
 ```python
-from cat.mad_hatter.decorators import endpoint
+from cat import endpoint
 
-@endpoint.get("/new")
-def my_endpoint():
+
+@endpoint.get("/hello")
+async def hello():
     return "meooow"
 ```
 
-Now open your browser on [`localhost:1865/custom/new`](http://localhost:1865/custom/new), you should see a `meooow` in the page.
-The new endpoint also appeared in `/docs` alongside core endpoints, under the `Custom Endpoints` group.  
+Open [`localhost:1865/hello`](http://localhost:1865/hello) and you'll see `meooow`. The endpoint also appears in `/docs`. The path you give is the path it serves, name it however you like.
 
-## Authentication and Authorization
+## Authentication with `role`
 
-You'll probably want to:
-
- 1. restrict your custom endpoints to requests providing the [correct key or jwt](/docs/production/auth/authentication/)
- 2. access the user session and main Cat's modules from within the endpoint
-
-As an example let's have the endpoint producing a joke:
+By default an endpoint is open to the web. To require authentication, add a `role`, that single kwarg wires in the same auth core uses (it returns `403` when the caller is unauthenticated or lacks the role):
 
 ```python
-from cat.mad_hatter.decorators import endpoint
-from cat.auth.permissions import check_permissions
+from cat import endpoint
 
-@endpoint.get("/joke")
-def joke(cat=check_permissions("CONVERSATION", "WRITE")):
-    
-    # invoking the LLM!
-    return cat.llm("Tell me a short joke.")
+@endpoint.get("/public")                         # open, no auth
+async def public():
+    return "anyone can read this"
+
+@endpoint.get("/me", role="authenticated")       # any logged-in user
+async def me():
+    ...
+
+@endpoint.get("/admin", role="admin")            # must have the "admin" role
+async def admin():
+    ...
+
+@endpoint.get("/staff", role=["admin", "editor"])  # any of these (OR)
+async def staff():
+    ...
 ```
 
-We all know LLMs' jokes are rarely fun, but you can generate a new one every time you access endpoint `GET /custom/joke`.
+`role` semantics:
 
-Notice here we used `cat` as we did in hooks and tools, to let you easily access user session, LLM and most of the functionality the framework can offer.
+- **`None`** (default) — open, no auth required.
+- **`"authenticated"`** — any logged-in user, regardless of roles.
+- **`"admin"`** — must have that role.
+- **`["a", "b"]`** — must have any of these (OR).
 
-Utility function `check_permissions` will handle authentication and authorization, both for api keys and jwt, giving in output the `cat` if successful. The function requires you to specify a resource (e.g. `PLUGINS`, `MEMORY`) and a permission (e.g. `READ`, `WRITE`); you can see available resources and permissions in the user manager (admin panel) and in source code under `cat/auth/permissions.py`.  
+You never touch FastAPI's `Depends` or any auth helper for this, `role=` is the whole story.
 
-For simplicity you can write resource and permission as strings, and they will be automatically validated. Under the hood those are treated as enums and you can use those directly:
+## Reading the user and config
+
+Inside an endpoint you read the caller with the ambient `user` handle, and installation settings with `config`. Nothing is passed in as an argument:
 
 ```python
-from cat.mad_hatter.decorators import endpoint
-from cat.auth.permissions import AuthResource, AuthPermission, check_permissions
+from cat import endpoint, user, llm
 
-@endpoint.get("/joke")
-def joke(cat=check_permissions(AuthResource.CONVERSATION, AuthPermission.WRITE)):
-    
-    # invoking the LLM!
-    return cat.llm("Tell me a short joke.")
+
+@endpoint.get("/joke", role="authenticated")
+async def joke():
+    # invoke the LLM directly
+    answer = await llm("Tell me a short joke.")
+    return {"joke": answer.text, "user": user.name}
 ```
 
-:::caution
-If your endpoint function does not have a `cat=check_permissions(...)` argument, the endpoint will be wide open to the web.
-:::
+## Input and output models
 
-
-## Endpoint input and output
-
-To make your endpoint work with custom data structures, it is a good idea to make [pydantic](https://docs.pydantic.dev/latest/) models describing input and output, so you get code clarity plus automatic validation and documentation.
-
-Let's imagine an endpoint you can call from any client, for example a Javascript frontend or a Rust batch job running in the night on a remote server. Endpoint will receive `topic` and `language` for the joke, and send as output `joke` and `user_id`.
+For anything beyond a toy, describe input and output with [pydantic](https://docs.pydantic.dev/latest/) models. You get validation and automatic documentation for free:
 
 ```python
 from pydantic import BaseModel
+from cat import endpoint, llm
+
 
 class JokeInput(BaseModel):
     topic: str
     language: str
 
+
 class JokeOutput(BaseModel):
     joke: str
-    user_id: str
 
-@endpoint.post("/topic-joke")
-def topic_joke(
-    joke_input: JokeInput,
-    cat=check_permissions("CONVERSATION", "WRITE"),
-) -> JokeOutput:
 
-    joke = cat.llm(f"Tell me a short joke about {joke_input.topic}, in {joke_input.language} language.")
-    
-    return JokeOutput(
-        joke=joke,
-        user_id=cat.user_id
+@endpoint.post("/topic-joke", role="authenticated")
+async def topic_joke(data: JokeInput) -> JokeOutput:
+    answer = await llm(
+        f"Tell me a short joke about {data.topic}, in {data.language}."
     )
+    return JokeOutput(joke=answer.text)
 ```
 
-To use the endpoint send a `POST` request to `/custom/topic-joke` or just use it in the playground under `/docs`. Request payload will be something like:
+Call it with a `POST` to `/topic-joke`, or use the playground under `/docs`. Request body:
 
 ```json
-{
-  "topic": "mozzarella",
-  "language": "italian"
-}
+{ "topic": "mozzarella", "language": "italian" }
 ```
 
-Ad the glorious response something like:
+## Path and tags
 
-```json
-{
-  "joke": "Perché la mozzarella non va mai in palestra? \n\nPerché ha paura di sciogliersi!",
-  "user_id": "user"
-}
-```
-
-As you can see specifying input and output models gave you automatic validation and automatic documentation. You can avoid typing everything in prototyping stage, but it is a good practice for production.
-
-
-## Path and Tags
-
-You are free to name the endpoint as you please, using any HTTP verb (`GET`, `POST`, `PUT`, `DELETE`) and deciding in autonomy what the endpoint gets as input and gives as output. You can also customize the endpoint's path: 
+You can pick the verb (`get`, `post`, `put`, `patch`, `delete`), add a `prefix`, and group the endpoint in `/docs` with `tags`:
 
 ```python
-@endpoint.get(path="/joke", prefix="/random", tags=["Useful Stuff"])
-def random_joke():
+@endpoint.get("/joke", prefix="/random", tags=["Useful Stuff"])
+async def random_joke():
     return 42
 ```
 
-This time the endpoint will be listening on `http://localhost:1865/random/joke` and will be documented in `/docs` in its own `Useful Stuff` group.
+This serves at `http://localhost:1865/random/joke` and is documented under its own `Useful Stuff` group.
 
-## Dependency injection
+## Full FastAPI power
 
-Being a full blown [FastAPI](https://fastapi.tiangolo.com/) endpoint, you can use any primitive available in FastAPI.  
-Here is an example to access directly the network request:
+Each endpoint is a real [FastAPI](https://fastapi.tiangolo.com/) route, so any FastAPI primitive works, path/query params, `UploadFile`, `Request`, response models, and so on:
 
 ```python
 from fastapi import Request
+from cat import endpoint
+
 
 @endpoint.get("/headers")
-def send_me_back_the_headers(request: Request):
-    return request.headers
+async def send_me_back_the_headers(request: Request):
+    return dict(request.headers)
 ```
-
-
-## Examples
-
-TODO CONTRIBUTIONS ARE WELCOME
-

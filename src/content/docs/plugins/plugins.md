@@ -2,114 +2,75 @@
 title: "How to write a plugin"
 ---
 
-To write a plugin just create a new folder in `cat/plugins/`, in this example will be "myplugin".
+A plugin is a folder of Python files. Drop it in the `plugins/` directory and the Cat discovers everything inside it at startup, no registration, no wiring.
 
-You need two files into your plugin folder:
+```
+plugins/
+└── myplugin/
+    ├── plugin.json      # metadata (name, version, description)
+    ├── agents/          # your agents
+    ├── directives/      # reusable middleware
+    └── endpoints.py     # custom HTTP routes
+```
 
-    ├── cat/
-    │   ├── plugins/
-    |   |   ├── myplugin/
-    |   |   |   ├── mypluginfile.py
-    |   |   |   ├── plugin.json
-
-The `plugin.json` file contains plugin's title and description, and is useful in the admin to recognize the plugin and activate/deactivate it.
-If your plugin does not contain a `plugin.json` the cat will not block your plugin, but it is useful to have it.
-
-`plugin.json` example:
+The folder layout is a convention for readability, the Cat simply imports every `.py` file in the plugin (skipping `tests/`). A `plugin.json` is optional but recommended, it names your plugin in the admin panel:
 
 ```json
 {
-    "name": "The name of my plugin",
-    "description": "Short description of my plugin"
+    "name": "My Plugin",
+    "version": "1.0.0",
+    "description": "Short description of my plugin",
+    "min_cat_version": "2.0.0"
 }
 ```
 
-Now let's start `mypluginfile.py` with a little import:
+## One import surface: `cat`
+
+Everything you need comes from a single front door. You import *names*, and each resolves against the configured installation when you call it:
 
 ```python
-from cat.mad_hatter.decorators import tool, hook
+from cat import Agent, tool, hook, endpoint, Directive, user, store, config, llm, log
 ```
 
-You are now ready to change the Cat's behavior using Tools and Hooks.
+There is no `cat` instance to thread around, no deeply nested objects. You reach the caller with `user`, the LLM with `llm(...)`, persistent storage with `store`, and so on.
 
-## &#129520; Tools
+## The building blocks
 
-Tools are python functions that can be selected from the language model (LLM). Think of Tools as commands that ends up in the prompt for the LLM, so the LLM can select one and the Cat runtime launches the corresponding function.  
-Here is an example of Tool to let the Cat tell you what time it is:
+A plugin extends the Cat through a handful of primitives. Each has its own page:
+
+- **[Agents](/docs/plugins/agents/)** — the things you run. An agent is a loop with a `system_prompt`, some tools, and some directives. Subclass `Agent`, give it a `slug`, and clients can talk to it.
+
+- **[Tools](/docs/plugins/tools/)** — an agent's hands. A method decorated with `@tool` that the LLM can decide to call. Its docstring and type hints are the manual the LLM reads.
+
+- **[Directives](/docs/plugins/directives/)** — reusable middleware over the agent loop (`start` / `step` / `finish`). RAG, memory and guardrails are all just directives. This is how you customize an agent's behaviour.
+
+- **[Hooks](/docs/plugins/hooks/)** — data-only reactions to global lifecycle events (a message coming in, the app booting). Use a hook when you don't need the agent; use a directive when you do.
+
+- **[Custom Endpoints](/docs/plugins/endpoints/)** — extend the REST API with `@endpoint.get/post/...`, guarded by a single `role=` kwarg.
+
+## A minimal plugin
+
+The smallest useful plugin is one agent:
 
 ```python
-@tool
-def get_the_time(tool_input, cat):
-    """Replies to "what time is it", "get the clock" and similar questions. Input is always None.."""
+# plugins/myplugin/agents/poet.py
+from cat import Agent
 
-    return str(datetime.now())
+
+class Poet(Agent):
+    slug = "poet"
+    name = "Poet"
+    description = "Answers every message in rhyme."
+    system_prompt = "Whatever the user says, you answer in rhyme."
 ```
 
-More examples on tools [here](/docs/plugins/tools/).
+Talk to it by naming its `slug`:
 
-## &#129693; Hooks
-
-Hooks are also python functions, but they pertain the Cat's runtime and not strictly the LLM. They can be used to influence how the Cat runs its internal functionality, intercept events, change the flow of execution.  
-
-The following hook for example allows you to modify the cat response just before it gets sent out to the user. In this case we make a "grumpy rephrase" of the original response.
-
-```python
-@hook
-def before_cat_sends_message(message, cat):
-
-    prompt = f'Rephrase the following sentence in a grumpy way: {message["content"]}'
-    message["content"] = cat.llm(prompt)
-
-    return message
+```bash
+curl -X POST http://localhost:1865/agents/poet/message \
+  -H "Authorization: meow" \
+  -H "Content-Type: application/json" \
+  -d '{ "messages": [{ "role": "user", "content": [{ "type": "text", "text": "hello" }] }] }'
 ```
 
-If you want to change the default Agent behavior you can start overriding the default plugin hooks, located in `/core/cat/mad_hatter/core_plugin/hooks/prompt.py`, rewriting them in the plugin file with a higher priority.
-Here is an example of the `agent_prompt_prefix` hook that changes the personality of the Agent:
-
-```python
-# Original Hook, from /core/cat/mad_hatter/core_plugin/hooks/prompt.py
-
-@hook(priority=0)
-def agent_prompt_prefix(prefix, cat):
-    prefix = """You are the Cheshire Cat AI, an intelligent AI that passes the Turing test.
-                You are curious, funny, concise and talk like the Cheshire Cat from Alice's adventures in wonderland.
-                You answer Human using tools and context."""
-```
-
-```python
-# Modified Hook, to be copied into mypluginfile.py
-
-@hook # default priority is 1
-def agent_prompt_prefix(prefix, cat):
-    prefix = """You are Scooby Doo AI, an intelligent AI that passes the Turing test.
-                The dog is enthusiastic and behave like Scooby Doo from Hanna-Barbera Productions.
-                You answer Human using tools and context."""
-    return prefix
-```
-
-Hooks in different plugins are executed serially, from high priority to low. If you do not provide a priority, your hook will have `priority=1`.
-More examples ans details on hooks [here](/docs/plugins/hooks/).
-
-
-## &#x1f310; Custom Endpoints
-
-To extend the REST API endpoints available, use the `@endpoint` decorator in your plugin.
-
-```python
-from cat.mad_hatter.decorators import endpoint
-
-@endpoint.get("/new")
-def my_endpoint():
-    return "meooow"
-```
-
-Your Cat now replies to GET requests to `localhost:1865/custom/new` and is listed in `/docs` alongside core endpoints. Being based on [FastAPI endpoints](https://fastapi.tiangolo.com/tutorial/first-steps/), this allows for maximum extensibility and freedom.  
-You can add permissions to the endpoint and easily obtain the user session (what you saw above as `cat`), use the LLM or change the working memory.  
-See more details and examples [here](/docs/plugins/endpoints/).
-
-## &#128570; The `cat`
-
-You surely noticed that all the primitives listed above put at your disposal a variable called `cat`.
-It gives you access to the many framework components and utilities. Just to give an example, you can invoke the LLM directly using `cat.llm("write here a prompt")`.
-
-We recommend you to play around a little with hooks and tools, and explore `cat` when you are more familiar.
+From here, give the agent [tools](/docs/plugins/tools/), attach [directives](/docs/plugins/directives/), or expose your own [endpoints](/docs/plugins/endpoints/).

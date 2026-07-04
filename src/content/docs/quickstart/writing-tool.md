@@ -2,99 +2,88 @@
 title: "Writing the first Tool"
 ---
 
-Tools are Python functions called by the LLM to execute actions.
-They are made of two parts: the first one contains instructions that explain the LLM when and how to call function;
-the second one contains the actual code to execute.
+In the Cheshire Cat you talk to an **Agent**: a small class with a personality (its `system_prompt`) and, optionally, some **tools**. A tool is a method the LLM can decide to call to actually *do* something, look up a price, hit a database, send an email.
 
-## Creating the Tool
+Let's build a poetic sock seller: an agent that answers in rhyme and can look up sock prices with a tool.
 
-Now, let’s get down to business.
-A real socks sales representative offers a quantity of socks, with many colors and corresponding price.
-Let’s say a customer wants to know the price for socks of a specific color.
-We could write a tool to answer the question.
-Therefore, copy and past this source code inside the file `poetic_sock_seller.py`:
+## Creating the Agent and its Tool
+
+Open `poetic_sock_seller.py` and paste this in:
 
 ```python
-from cat.mad_hatter.decorators import tool
+from cat import Agent, tool
 
-@tool
-def socks_prices(color, cat):
-    """How much do socks cost? Input is the sock color."""
-    prices = {
-        "black": 5,
-        "white": 10,
-        "pink": 50,
-    }
-    if color not in prices.keys():
-        return f"No {color} socks"
-    else:
-        return f"{prices[color]} €" 
+
+class PoeticSockSeller(Agent):
+    slug = "sock_seller"
+    name = "Poetic Sock Seller"
+    description = "A poetic vendor of socks."
+
+    system_prompt = (
+        "You are Marvin, a poetic vendor of socks. "
+        "You are an expert in socks and you reply with exactly one rhyme. "
+        "Use your tools to look up prices, never invent them."
+    )
+
+    @tool
+    def socks_prices(self, color: str) -> str:
+        """How much do socks cost? Input is the sock color."""
+        prices = {"black": 5, "white": 10, "pink": 50}
+        if color not in prices:
+            return f"No {color} socks"
+        return f"{prices[color]} €"
 ```
+
+The Cat detects the change, reloads, and registers your agent by its `slug`.
 
 ## Testing the Tool
 
-Now, let’s ask for our favorite socks color:
+Send a message to your agent (naming it by its `slug`) and ask for a price:
 
-![Alt text](../assets/img/quickstart/write-tool/ask-price-socks.png)
+```bash
+curl -X POST http://localhost:1865/agents/sock_seller/message \
+  -H "Authorization: meow" \
+  -H "Content-Type: application/json" \
+  -d '{ "messages": [{ "role": "user", "content": [{ "type": "text", "text": "how much for pink socks?" }] }] }'
+```
 
-## Why the response?
-
-By clicking on the question mark next to the answer, you can understand what prompted the Cat to provide the response.
-In this case, you can see that our tool "socks_prices" was used:
-
-![Alt text](../assets/img/quickstart/write-tool/why-the-response.png)
+The agent calls `socks_prices` with `color="pink"`, gets back `50 €`, and answers in rhyme.
 
 ## Explaining the code step by step
 
 ```python
-from cat.mad_hatter.decorators import tool
+from cat import Agent, tool
 ```
 
-Let’s import the tool decorator from the Cat.
-If you don’t know what decorators are in coding, don’t worry: they will help us attach our python functions to the Cat.
-The `mad_hatter` is the Cat component that manages and runs plugins.
+Everything you need comes from the `cat` front door: here, the `Agent` base class and the `@tool` decorator.
 
 ```python
-@tool
-def socks_prices(color, cat):
-    """How much do socks cost? Input is the sock color."""
+class PoeticSockSeller(Agent):
+    slug = "sock_seller"
+    system_prompt = "You are Marvin, a poetic vendor of socks..."
 ```
 
-We define a function called "socks_prices," which takes as input the color of the desired socks and a cat instance.
-
-The `@tool()` decorator has the main function of letting the Cat know that the following function is a tool.
-
-The docstring just after the function signature reads as follows:
-
->"How much do socks cost? Input is the sock color."
-
-This description instructs the LLM on when to call this tool and describes what input to provide.
-
-Going back to the tool actual code:
+Subclassing `Agent` and giving it a `slug` is all it takes for the Cat to pick it up. The `system_prompt` is the agent's whole personality and instructions.
 
 ```python
-    prices = {
-        "black": 5,
-        "white": 10,
-        "pink": 50,
-    }
-
-    if color not in prices.keys():
-        return f"No {color} socks"
-    else:
-        return f"{prices[color]} €" 
+    @tool
+    def socks_prices(self, color: str) -> str:
+        """How much do socks cost? Input is the sock color."""
 ```
 
-Not much to say here: we just check if the color is present in the dictionary and output the price.
-What is indeed interesting is that, in a tool, you can connect your AI to any service, database, file, device, or whatever you need.
-Imagine turning on and off the light in your room, searching an e-commerce or writing an email.
-The only limit is your fantasy &#128512;.
+The `@tool` decorator turns a method into something the LLM can call. Three parts do the work:
+
+- **the method name** becomes the tool's name;
+- **the docstring** tells the LLM *when* to use the tool and what the input means;
+- **the type hints** (`color: str`) define the arguments, already parsed for you, no manual string handling.
+
+Inside the body you can connect to any service, database, file or device. The only limit is your imagination &#128512;.
 
 ## WatchFiles detected changes... reloading
 
-When changes to the plugin's source code are detected, the Cat automatically restarts.
-Feel free to make changes within the code and observe the results.
+When you edit a plugin's source, the Cat automatically restarts. Change the code and watch the results.
 
 #### More Info
 
 Tools reference: [Plugins → Tools](/docs/plugins/tools/)
+Agents reference: [Plugins → Write an Agent](/docs/plugins/agents/)

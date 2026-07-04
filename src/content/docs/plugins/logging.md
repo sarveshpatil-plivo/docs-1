@@ -19,7 +19,7 @@ Logging messages which are less severe than *level* will be ignored; logging mes
 The logging system can be imported like this
 
 ```python
-from cat.log import log
+from cat import log
 ```
 
 and then used as easy as:

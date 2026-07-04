@@ -47,68 +47,12 @@ export default defineConfig({
             { label: 'How to Write a Plugin', slug: 'plugins/plugins' },
             { label: 'Write an Agent', slug: 'plugins/agents' },
             { label: 'Tools', slug: 'plugins/tools' },
+            { label: 'Directives', slug: 'plugins/directives' },
             { label: 'Hooks', slug: 'plugins/hooks' },
             { label: 'Custom Endpoints', slug: 'plugins/endpoints' },
             { label: 'Logging', slug: 'plugins/logging' },
             { label: 'Settings', slug: 'plugins/settings' },
             { label: 'Dependencies', slug: 'plugins/dependencies' },
-            { label: 'Examples', slug: 'plugins/examples' },
-            {
-              label: 'Hooks API Reference',
-              items: [
-                {
-                  label: 'Flow',
-                  items: [
-                    { slug: 'plugins/hooks-reference/flow/before_cat_reads_message' },
-                    { slug: 'plugins/hooks-reference/flow/cat_recall_query' },
-                    { slug: 'plugins/hooks-reference/flow/before_cat_recalls_memories' },
-                    { slug: 'plugins/hooks-reference/flow/before_cat_recalls_episodic_memories' },
-                    { slug: 'plugins/hooks-reference/flow/before_cat_recalls_declarative_memories' },
-                    { slug: 'plugins/hooks-reference/flow/before_cat_recalls_procedural_memories' },
-                    { slug: 'plugins/hooks-reference/flow/after_cat_recalls_memories' },
-                    { slug: 'plugins/hooks-reference/flow/before_cat_stores_episodic_memory' },
-                    { slug: 'plugins/hooks-reference/flow/before_cat_sends_message' },
-                  ],
-                },
-                {
-                  label: 'Agent',
-                  items: [
-                    { slug: 'plugins/hooks-reference/agent/before_agent_starts' },
-                    { slug: 'plugins/hooks-reference/agent/agent_fast_reply' },
-                    { slug: 'plugins/hooks-reference/agent/agent_allowed_tools' },
-                    { slug: 'plugins/hooks-reference/agent/agent_prompt_prefix' },
-                    { slug: 'plugins/hooks-reference/agent/agent_prompt_suffix' },
-                  ],
-                },
-                {
-                  label: 'Rabbit Hole',
-                  items: [
-                    { slug: 'plugins/hooks-reference/rabbit-hole/rabbithole_instantiates_parsers' },
-                    { slug: 'plugins/hooks-reference/rabbit-hole/rabbithole_instantiates_splitter' },
-                    { slug: 'plugins/hooks-reference/rabbit-hole/before_rabbithole_insert_memory' },
-                    { slug: 'plugins/hooks-reference/rabbit-hole/before_rabbithole_splits_text' },
-                    { slug: 'plugins/hooks-reference/rabbit-hole/after_rabbithole_splitted_text' },
-                    { slug: 'plugins/hooks-reference/rabbit-hole/before_rabbithole_stores_documents' },
-                    { slug: 'plugins/hooks-reference/rabbit-hole/after_rabbithole_stored_documents' },
-                  ],
-                },
-                {
-                  label: 'Factory',
-                  items: [
-                    { slug: 'plugins/hooks-reference/factory/factory_allowed_llms' },
-                    { slug: 'plugins/hooks-reference/factory/factory_allowed_embedders' },
-                    { slug: 'plugins/hooks-reference/factory/factory_allowed_auth_handlers' },
-                  ],
-                },
-                {
-                  label: 'Lifecycle',
-                  items: [
-                    { slug: 'plugins/hooks-reference/lifecycle/before_cat_bootstrap' },
-                    { slug: 'plugins/hooks-reference/lifecycle/after_cat_bootstrap' },
-                  ],
-                },
-              ],
-            },
             {
               label: 'Registry',
               items: [

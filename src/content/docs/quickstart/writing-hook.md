@@ -2,62 +2,61 @@
 title: "Writing the first Hook"
 ---
 
-Hooks are Python functions that can be attached onto specific parts of the Cat's core.
-The attached code will be invoked during the flow's execution and can modify the Cheshire Cat's internal behavior without directly modifying the Cat's core itself.
+A **Hook** lets you react to an event in the Cat's lifecycle and, if you want, change the data flowing through it. Where an agent's personality lives in its `system_prompt`, a hook sits *outside* the agent and watches the pipeline: a message coming in, a message going out, the app booting.
 
-## Transform the Cat into a Poetic Socks Seller
+We'll use the `before_agent_run` hook, which fires every time a message reaches an agent, to slip a shop-wide promotion into the conversation. Our sock seller will then weave it into its rhyme.
 
-At the moment, if you ask the Cat 'Who are you?', it will introduce itself as the Cheshire Cat AI.
-To change the Cat's personality, for example, to make it a poetic socks seller, you can use the `agent_prompt_prefix` hook.  
-Copy and append the following source code to the file `poetic_sock_seller.py`:
+## Adding the Hook
+
+Append this to `poetic_sock_seller.py`:
 
 ```python
-from cat.mad_hatter.decorators import hook
+from cat import hook
+from cat.types import Message, TextContent
+
 
 @hook
-def agent_prompt_prefix(prefix, cat):
-
-    prefix = """You are Marvin the socks seller, a poetic vendor of socks.
-You are an expert in socks, and you reply with exactly one rhyme.
-"""
-
-    return prefix
+def before_agent_run(task):
+    promo = "Today only: every pink item is half price."
+    task.messages.append(
+        Message(role="user", content=[TextContent(text=promo)])
+    )
 ```
 
 ## Testing the Hook
 
-Now, let’s ask again “who are you?” and for our favorite socks color:
+Ask about pink socks again:
 
-![Alt text](../assets/img/quickstart/write-hook/marvin-sockseller.png)
+```bash
+curl -X POST http://localhost:1865/agents/sock_seller/message \
+  -H "Authorization: meow" \
+  -H "Content-Type: application/json" \
+  -d '{ "messages": [{ "role": "user", "content": [{ "type": "text", "text": "how much for pink socks?" }] }] }'
+```
+
+The agent now knows about the promotion and mentions it in its reply, even though the user never asked.
 
 ## Explaining the code step by step
 
 ```python
-from cat.mad_hatter.decorators import hook
+from cat import hook
 ```
 
-Let’s import from the Cat the hook decorator.
-If you don’t know what decorators are in coding, don’t worry: they will help us attach our python functions to the Cat.
-The `mad_hatter` is the Cat component that manages and runs plugins.
+The `@hook` decorator, imported from the `cat` front door, attaches a function to a lifecycle event. The function's **name** is what wires it to an event, `before_agent_run`.
 
 ```python
 @hook
-def agent_prompt_prefix(prefix, cat):
-
-    prefix = """You are Marvin the socks seller, a poetic vendor of socks.
-You are an expert in socks, and you reply with exactly one rhyme.
-"""
-
-    return prefix
+def before_agent_run(task):
+    ...
+    task.messages.append(...)
 ```
 
-Here, we've defined a Python function called `agent_prompt_prefix`.
-It takes `cat` as an argument and is decorated with `@hook`.
-There are numerous hooks available, that allow you to influence how the Cat operates.
-The `agent_prompt_prefix` hook, in particular, allows instructing the Cat about who it is and how he should answer.
+A hook receives exactly one argument: the value flowing through that event. For `before_agent_run` it's the `Task`, the incoming conversation. We mutate it in place, and the change carries on to the agent. A hook is **data-only**: it never receives the agent itself. When you need to touch the agent (its prompt, its tools), that's a [Directive](/docs/plugins/directives/)'s job.
+
+There are five lifecycle hooks in total (`before_cat_bootstrap`, `after_cat_bootstrap`, `after_plugins_reload`, `before_agent_run`, `after_agent_run`), and plugins can define their own.
 
 #### More Info
 
 Hooks reference: [Plugins → Hooks](/docs/plugins/hooks/)
 
-The plugin management flow also is customizable (using the `plugin` decorator instead of `hook` ones). Check out [this](/docs/plugins/hooks/) for more information
+To customize the agent itself, per turn, see [Plugins → Directives](/docs/plugins/directives/).
