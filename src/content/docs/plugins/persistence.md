@@ -76,4 +76,3 @@ The two stores are for **runtime state your code reads and writes**. The Cat has
 | Shared state across all users | `store` |
 | State private to each user | `user` |
 | Configuration an admin edits in the UI | [Plugin Settings](/docs/plugins/settings/) |
-| Semantic recall over text (RAG) | [Vector Memory](/docs/faq/llm-concepts/vector-memory/) |

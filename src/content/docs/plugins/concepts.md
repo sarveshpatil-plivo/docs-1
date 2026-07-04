@@ -1,8 +1,8 @@
 ---
-title: "Main primitives"
+title: "Main concepts"
 ---
 
-You now have an empty plugin. What can you put in it? A plugin extends the Cat through a handful of **primitives**, each a small Python class or decorated function the Cat discovers at startup. Everything comes from a single front door:
+A plugin extends the Cat through a handful of **primitives**, each a small Python class or decorated function the Cat discovers at startup. Everything comes from a single front door:
 
 ```python
 from cat import Agent, tool, Directive, hook, endpoint, store, user, log

@@ -34,14 +34,13 @@ export default defineConfig({
           items: [
             { label: 'Install', slug: 'quickstart/installation-configuration' },
             { label: 'Message the Cat', slug: 'quickstart/message' },
-            { label: 'Create a Plugin', slug: 'quickstart/prepare-plugin' },
-            { label: 'Main primitives', slug: 'quickstart/primitives' },
-            { label: 'Conclusion', slug: 'quickstart/conclusion' },
+            { label: 'Plugin Tutorial', slug: 'quickstart/prepare-plugin' },
           ],
         },
         {
           label: 'Plugins',
           items: [
+            { label: 'Main concepts', slug: 'plugins/concepts' },
             { label: 'Install a Plugin', slug: 'quickstart/installing-plugin' },
             { label: 'How to Write a Plugin', slug: 'plugins/plugins' },
             { label: 'Write an Agent', slug: 'plugins/agents' },
@@ -88,16 +87,6 @@ export default defineConfig({
             { label: 'Errors', slug: 'faq/errors' },
             { label: 'Customization', slug: 'faq/customization' },
             { label: 'Security & Spending', slug: 'faq/security_and_spending' },
-            {
-              label: 'Concepts',
-              items: [
-                { label: 'Language Models', slug: 'faq/llm-concepts/llm' },
-                { label: 'Retrieval Augmented Generation', slug: 'faq/llm-concepts/rag' },
-                { label: 'Prompt', slug: 'faq/llm-concepts/prompt' },
-                { label: 'Encoder', slug: 'faq/llm-concepts/embedder' },
-                { label: 'Vector Memory', slug: 'faq/llm-concepts/vector-memory' },
-              ],
-            },
           ],
         },
       ],

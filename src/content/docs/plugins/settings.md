@@ -2,114 +2,93 @@
 title: "Plugin Settings"
 ---
 
-Your plugin may need a set of options, to make it more flexible and customizable.  
-It is possible to easily define settings for your plugin, so the Cat can show them in the admin interface.
+When part of your plugin should be configurable, an API key, a discount rate, a base URL, you don't hard-code it. You declare **settings**, and the Cat renders them as a form in the admin so anyone can change them without touching code.
 
-## Settings schema
+Settings live on a **service**, that is, anything you subclass in a plugin: an [Agent](/docs/plugins/agents/), a [Directive](/docs/plugins/directives/), an [Auth handler](/docs/production/auth/custom-auth/), a model provider. You declare a nested `class Settings(BaseModel)` and read the current values with `await self.load_settings()`. That is the whole model.
 
-By defining the `settings_schema` function and decorating it with `@plugin` you can tell the Cat how your settings are named, what is their type and (if any) their default values.  
-The function must return a [JSON Schema](https://json-schema.org/) for the settings. You can code the schema manually, load it from disk, or obtain it from a [pydantic](https://docs.pydantic.dev/latest/usage/json_schema/) class (recommended approach).
+## Declaring settings
 
-The easiest approach is to define the `settings_model` function in favor of `settings_schema`, decorating it with `@plugin`, so to get the plugin settings as a [Pydantic Model](https://docs.pydantic.dev/latest/concepts/models/).
-
-Here is an example with all supported types, with and without a default value:
+Add a nested `Settings` [pydantic](https://docs.pydantic.dev/latest/concepts/models/) model to your service. Each field becomes a form control, its default becomes the pre-filled value:
 
 ```python
-from pydantic import BaseModel
-from enum import Enum
-from datetime import date, time
-from cat.mad_hatter.decorators import plugin
+from pydantic import BaseModel, Field
+from cat import Agent, tool
 
 
-# select box
-#   (will be used in class DemoSettings below to give a multiple choice setting)
-class NameSelect(Enum):
-    a: str = 'Nicola'
-    b: str = 'Emanuele'
-    c: str = 'Daniele'
+class SockSeller(Agent):
+    slug = "sock_seller"
+    name = "Sock Seller"
+    description = "Sells socks and knows their prices."
 
+    system_prompt = "You sell socks. Use your tools to answer questions about price."
 
-# settings
-class DemoSettings(BaseModel):
-
-    # Integer
-    #   required setting
-    required_int: int
-    #   optional setting, with default value
-    optional_int: int = 42
-
-    # Float
-    required_float: float
-    optional_float: float = 12.95
-    
-    # String
-    required_str: str
-    optional_str: str = "stocats"
-    
-    # Boolean
-    required_bool: bool
-    optional_bool_true: bool = True
-    
-    # Date
-    required_date: date
-    optional_date: date = date(2020, 11, 2)
-
-    # Time
-    required_time: time
-    optional_time: time = time(4, 12, 54)
-
-    # Select
-    required_enum: NameSelect
-    optional_enum: NameSelect = NameSelect.b
-
-
-# Give your settings model to the Cat.
-@plugin
-def settings_model():
-    return DemoSettings
-
+    class Settings(BaseModel):
+        discount: float = Field(0.0, title="Discount", description="Fraction off, e.g. 0.2 for 20%.")
+        currency: str = Field("EUR", title="Currency")
 ```
 
-## Change Settings from the Admin
+Give every field a **default**: the form pre-fills it, and your code always has a value to read even before anyone opens the panel.
 
-Now go to the admin in `Plugins` page and click the cog near the activation toggle:
+## Reading settings in your code
+
+Call `await self.load_settings()` from anywhere on the service, a tool, a directive method, wherever. You get a typed instance of your `Settings` model back, read fresh every call (no cache), so it always reflects the latest save:
+
+```python
+    @tool
+    async def price(self, color: str) -> str:
+        """Price of a pair of socks. Input is the sock color."""
+        prices = {"black": 5, "white": 8, "pink": 12}
+        if color not in prices:
+            return f"No {color} socks"
+
+        s = await self.load_settings()
+        final = prices[color] * (1 - s.discount)
+        return f"{final:.2f} {s.currency}"
+```
+
+## Editing settings in the admin
+
+Open the **Plugins** tab in the admin and click the cog next to your plugin:
 
 ![Open settings](../assets/img/admin_screenshots/plugin_settings/settings.png)
 
-A side panel will open, where you and your plugin's users can choose settings in a comfy way.
+A side panel opens with the form built from your `Settings` model. When the user saves, the Cat validates the input against the model, persists it, and refreshes the service so the next call to `load_settings()` returns the new values.
 
-<figure markdown>
-  ![Form part 1](../assets/img/admin_screenshots/plugin_settings/form1.png)
-</figure>
+## Field types and richer forms
 
-<figure markdown>
-  ![Form part 2](../assets/img/admin_screenshots/plugin_settings/form2.png)
-</figure>
-
-## Access settings from within your plugin
-
-Obviously, you need easy access to settings in your plugin code.
-First of all, note that the cat will, by default,
-save and load settings from a `settings.json` file which will automatically be created in the root folder of your plugin.
-
-So to access the settings, you can load them via `mad_hatter`.
-More in detail, from within a hook or a tool, you have access to the `cat` instance, hance, do the following:
+Because it is a plain pydantic model, every pydantic type works and maps to the right control. Use `Field(title=..., description=...)` for friendly labels, and an `Enum` for a dropdown:
 
 ```python
-settings = cat.mad_hatter.get_plugin().load_settings()
+from enum import Enum
+from datetime import date
+from pydantic import BaseModel, Field
+
+
+class Size(str, Enum):
+    small = "small"
+    medium = "medium"
+    large = "large"
+
+
+class Settings(BaseModel):
+    # required (no default) — the form marks it mandatory
+    api_key: str = Field(title="API Key")
+
+    # optional, with defaults
+    max_items: int = 42
+    enabled: bool = True
+    launch_date: date = date(2025, 1, 1)
+
+    # dropdown, from an Enum
+    size: Size = Size.medium
 ```
 
-Similarly, you can programmatically save your settings as follows:
+## Where settings are stored
 
-```python
-settings = cat.mad_hatter.get_plugin().save_settings(settings)
-```
+Settings persist in the Cat's [database](/docs/plugins/persistence/), under a key unique to each service, so two services never clash and there is no `settings.json` file to manage. A backup of the project folder carries them along.
 
-where `settings` is a dictionary describing your plugin's settings.
+To save settings from code (rather than through the admin form), call `await self.save_settings(payload)` with a dict or a `Settings` instance; it validates and persists just like the form does.
 
-## Advanced settings save / load
+## Dynamic settings (advanced)
 
-
-If you need even more customization for your settings you can totally override how they are saved and loaded.
-Take a look at the `save_settings` and `load_settings` functions (always to be decorated with `@plugin`).  
-From there you can call external servers or devise a totally different format to store and load your settings. The Cat will call those functions and delegate to them how settings are managed instead of using a `settings.json` file.
+Sometimes the *choices* aren't known until runtime, a dropdown of installed models, say. Override the `settings_schema()` classmethod to build the presented schema dynamically. It must be backed by a static `Settings` model, which stays the storage shape values round-trip through; `settings_schema()` only controls how the form is *presented*.
