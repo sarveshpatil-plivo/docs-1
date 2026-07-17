@@ -94,4 +94,4 @@ See [Main concepts](/docs/plugins/concepts/) for the map of everything a plugin 
 
 ## Join the community
 
-Building something with the Cat? Come say hi on [Discord](https://discord.gg/bHX5sNFCYU) to connect with other developers, get help from the contributors, share what you have made, and join the regular dev meetings and monthly Meow Talks.
+Building something with the Cat? Come say hi on [GitHub](https://github.com/cheshire-cat-ai/core/discussions) to connect with other developers, get help from the contributors, and share what you have made.

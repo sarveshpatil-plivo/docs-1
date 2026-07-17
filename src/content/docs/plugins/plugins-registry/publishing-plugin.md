@@ -81,10 +81,10 @@ Remember, our goal is to make your plugin available to our community seamlessly.
 
 ## &#128276; Stay Updated
 
-The final step is to stay informed about what's happening in the magical world of Cheshire Cat so that you can keep your plugin up to date with the latest developments. To facilitate this, we've created a dedicated channel for plugin developers on our [official Discord server](https://discord.com/invite/bHX5sNFCYU).
+The final step is to stay informed about what's happening in the magical world of Cheshire Cat so that you can keep your plugin up to date with the latest developments. To facilitate this, we encourage you to follow the project and join the conversation on [GitHub](https://github.com/cheshire-cat-ai/core/discussions).
 
-We invite you to become a part of our community and let a moderator know that you've submitted a plugin. Once your plugin is approved, we'll be happy to assign you a special role (Plugin Developer) and unlock all the dedicated channels for you.
+We invite you to become a part of our community and let the maintainers know that you've submitted a plugin, so we can help you keep it in good shape.
 
-If you don't use Discord or prefer not to login on our server, we still encourage you to try to keep up with Cheshire Cat AI's updates. We'll conduct periodic review cycles, and if your plugin becomes too outdated or non-functional after some time, we may have to remove it from the registry.
+We'll conduct periodic review cycles, and if your plugin becomes too outdated or non-functional after some time, we may have to remove it from the registry.
 
 *Looking forward to seeing you among our amazing plugin developers!*

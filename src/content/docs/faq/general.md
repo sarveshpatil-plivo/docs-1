@@ -5,7 +5,7 @@ title: "General"
 #### I've found the Cat and I like it very much, but I'm not able to follow your instructions to install it on my machine. Can you help?
 
 The Cheshire Cat is a framework to help developers to build vertical AIs: you will need some basic technical skills to follow our instructions.
-Please try to ask in the support channel in our discord server, and remember this is all volunteers effort: be kind! :)
+Please try to ask in our GitHub discussions, and remember this is all volunteers effort: be kind! :)
 
 #### Why the Cat does not default to some open LLM instead of ChatGPT or GPT-3?
 

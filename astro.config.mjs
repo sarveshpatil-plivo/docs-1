@@ -23,7 +23,6 @@ export default defineConfig({
       },
       social: [
         { icon: 'github', label: 'GitHub', href: 'https://github.com/cheshire-cat-ai/core' },
-        { icon: 'discord', label: 'Discord', href: 'https://discord.gg/bHX5sNFCYU' },
       ],
       editLink: {
         baseUrl: 'https://github.com/cheshire-cat-ai/docs/edit/main/',

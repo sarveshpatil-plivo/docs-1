@@ -12,7 +12,7 @@ published to GitHub Pages at <https://cheshire-cat-ai.github.io/docs/>.
    relative paths — Astro optimizes them automatically.
 4. Commit, push, and open a pull request against `main`.
 
-There is a [dedicated channel for Docs on our Discord](https://discord.com/channels/1092359754917089350/1092360068269359206) — don't be shy if you need help!
+Don't be shy if you need help: open an issue or start a discussion on GitHub!
 
 ## 🛠️ Develop
 
