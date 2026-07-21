@@ -44,6 +44,7 @@ export default defineConfig({
             { label: 'How to Write a Plugin', slug: 'plugins/plugins' },
             { label: 'Write an Agent', slug: 'plugins/agents' },
             { label: 'Tools', slug: 'plugins/tools' },
+            { label: 'Plivo Plugin', slug: 'plugins/plivo' },
             { label: 'Directives', slug: 'plugins/directives' },
             { label: 'Hooks', slug: 'plugins/hooks' },
             { label: 'Endpoints', slug: 'plugins/endpoints' },
